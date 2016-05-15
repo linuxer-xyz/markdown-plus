@@ -1,12 +1,22 @@
 
 
 // 文件名字
-var m_file_name = null;
+var m_file_name = "last";
 var m_file_data = {name: m_file_name, last: "", data: ""};
+var m_file_list = {items: []};
 
 // 数据url
 var m_url_fileget = "http://localhost:9000/editor/file_get";
 var m_url_filesave = "http://localhost:9000/editor/file_save"
+var m_url_filelist = "http://localhost:9000/editor/file_list";
+
+/* 登录处理流程 */
+function editor_proc_login() {
+    href = 'login.html?pop=1';
+    var win = window.open(href, 'login_window', 'height=450,width=780,resizable=yes,scrollbars=yes');
+    win.focus();
+							            
+}
 
 /* 获取数据流程 */
 function editor_proc_getdata() {
@@ -14,15 +24,67 @@ function editor_proc_getdata() {
         return
     }
 	$.get(m_url_fileget + "?name=" + m_file_name, function(md){
-		m_file_data = $.parseJSON(md);
+		m_file_data = md;
+		
+		/* 未认证 */
+		if (md.code == -2) {
+		    editor_proc_login();
+		}
 		
 		/* @TODO 判断数据是否一样 */
 		editor.session.setValue(m_file_data['data'], -1);
 	});
 }
 
+var m_ui_filelist = null;
+function editor_file_list(data) {
+    Std.main(function(){
+        if (m_ui_filelist) {
+            m_ui_filelist.clear();
+        }
+        m_ui_filelist = Std.ui("Tree",{
+            renderTo:"#id-editor-list",
+            width:300,
+            height:'99%',
+            checkable:false,
+            editable:false,
+            droppable:false,
+            selectionMode:"item",
+            items: data,
+            plugins:{
+                contextMenu:{
+                    items:[
+                        {text:"add"},
+				        {text:"del"}
+                    ]
+                }
+            }
+        });
+        
+        m_ui_filelist.on("itemClick", function(node,e) { 
+            // editor_proc_filesave();
+            m_file_name = node['opts'].text;
+            editor_proc_getdata();
+        /*@TODO*/});
+        
+    });
+}
+
+// 获取文件列表
+function editor_proc_filelist() {
+    $.post (
+        m_url_filelist,
+        m_file_list,
+        function (md) {
+            
+            
+            editor_file_list(md['data']);
+        }
+    );
+}
+
 /* 保存数据流程 */
-function medit_proc_filesave() {
+function editor_proc_filesave() {
 	a_new = false;
 	/* @TODO 判断数据是否一样, 如果不一样,才保存, 减少对服务器的请求 */
 	if (!m_file_name) {
@@ -42,13 +104,14 @@ function medit_proc_filesave() {
 		m_url_filesave, 
 		m_file_data,
 		function (md) {
+		    editor_proc_filelist();
 	        // @TODO: 处理保存结果
 		}
 	);
 }
 
 /* 新文件处理流程 */
-function medit_proc_filenew() {
+function editor_proc_filenew() {
     if (m_file_name) {
         a_editor_data = editor.session.getValue();
         if (a_editor_data != m_file_data['data']) {
@@ -56,7 +119,7 @@ function medit_proc_filenew() {
             
             /* 只在文件 */
             if (a_ret) {
-                medit_proc_filesave();
+                editor_proc_filesave();
             }
         }
     }
@@ -65,6 +128,9 @@ function medit_proc_filenew() {
         m_file_name = a_name;
         $("title").html(m_file_name);
         editor.session.setValue("", -1);
+        
+        // 打开数据
+        editor_proc_getdata();
     }
 }
 
@@ -72,12 +138,14 @@ function medit_proc_filenew() {
 /* 编辑器加载流程 */
 function editor_load_proc() {	
 	editor_proc_getdata();
+	editor_proc_filelist();
+	// editor_file_list();
 	
 	/* 触发保存数据流程 */
-	$("#id-editor-save").click(medit_proc_filesave);
+	$("#id-editor-save").click(editor_proc_filesave);
 	
 	/* 触发打开文件的流程 */
-	$("#id-editor-new").click(medit_proc_filenew);
+	$("#id-editor-new").click(editor_proc_filenew);
 	
 	/* 增加快捷键 */
     editor.commands.addCommands([
@@ -159,7 +227,18 @@ function editor_load_proc() {
         }
     }, 
     
-                
+
+    {
+        name: "new",
+        bindKey: {
+            win: "Ctrl-n",
+            mac: "Command-n"
+        },
+        exec: function(e) {
+            $("#id-editor-new").click()
+        }
+    }, 
+                    
     {
         name: "preferences",
         bindKey: {
