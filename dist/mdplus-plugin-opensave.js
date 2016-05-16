@@ -32,7 +32,10 @@ function editor_proc_getdata() {
 		}
 		
 		/* @TODO 判断数据是否一样 */
-		editor.session.setValue(m_file_data['data'], -1);
+		editor.session.setValue(m_file_data['data'], -1);				    
+		m_file_name = md.name;
+		$("title").html(m_file_name);
+            		
 	});
 }
 
@@ -63,8 +66,22 @@ function editor_file_list(data) {
         
         m_ui_filelist.on("itemClick", function(node,e) { 
             // editor_proc_filesave();
+			 if (m_file_name) {
+				a_editor_data = editor.session.getValue();
+				if (a_editor_data != m_file_data['data']) {
+				    a_ret = confirm("文件已经变动，是否要保存?");
+				    
+				    /* 只在文件 */
+				    if (a_ret) {
+				        editor_proc_filesave();
+				    }
+				}
+			}
+		
             m_file_name = node['opts'].text;
             editor_proc_getdata();
+            
+
         /*@TODO*/});
         
     });
@@ -76,9 +93,16 @@ function editor_proc_filelist() {
         m_url_filelist,
         m_file_list,
         function (md) {
-            
-            
-            editor_file_list(md['data']);
+
+			/* 未认证 */
+			if (md.code == -2) {
+				editor_proc_login();
+			}
+		    
+            if (md.code == 0) {
+            	editor_file_list(md['data']);
+            }
+
         }
     );
 }
@@ -104,7 +128,25 @@ function editor_proc_filesave() {
 		m_url_filesave, 
 		m_file_data,
 		function (md) {
-		    editor_proc_filelist();
+			/* 未认证 */
+			if (md.code == -2) {
+				editor_proc_login();
+			}
+			
+			/* 文件系统被修订 */
+			if (md.code == -1) {
+				a_ret = confirm("文件已经被修订, 是否强制保存");
+				if (a_ret) { 
+					m_file_data['last'] = md.last; 
+					editor_proc_filesave();
+				}
+			}
+			
+			if (md.code == 0) {		
+		    	/* 保存成功 */
+		    	editor_proc_filelist();
+		    	m_file_data['last'] = md.last;
+		    }
 	        // @TODO: 处理保存结果
 		}
 	);
