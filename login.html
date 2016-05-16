@@ -93,6 +93,13 @@
 				return null;
 			}
 			
+			m_url_login = "/auth/login";
+			m_url_editor = "mdplus.html";
+			var m_url_base = getQueryString('url_base');
+			if (m_url_base) {
+				m_url_login = m_url_base + m_url_login;
+				m_url_editor = m_url_editor + "?url_base=" + m_url_base;
+			}
 			
             function chk(){
 				var uname = $.trim($("#username").val());
@@ -105,7 +112,7 @@
 				
 				serialize_form = $("#manager_login").serialize();
 				$.ajax({
-					url: "http://localhost:9000/auth/login",
+					url: m_url_login,
 					type: "POST",
 					data: serialize_form,
 					success: function(data){
@@ -118,7 +125,7 @@
 								window.close();
 							}
 							else {
-								window.location.href = "/";
+								window.location.href = m_url_editor;
 							}
 						}
 						else {

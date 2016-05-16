@@ -6,9 +6,27 @@ var m_file_data = {name: m_file_name, last: "", data: ""};
 var m_file_list = {items: []};
 
 // 数据url
-var m_url_fileget = "http://localhost:9000/editor/file_get";
-var m_url_filesave = "http://localhost:9000/editor/file_save"
-var m_url_filelist = "http://localhost:9000/editor/file_list";
+var m_url_fileget = "/editor/file_get";
+var m_url_filesave = "/editor/file_save";
+var m_url_filelist = "/editor/file_list";
+
+
+function getQueryString(name)
+{
+	var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+	var r = decodeURI(window.location.search).substr(1).match(reg);
+	if (r != null) 
+		return unescape(r[2]);
+	return null;
+}
+			
+// 兼容node-wikit
+var m_url_base = getQueryString('url_base');
+if (m_url_base) {
+	m_url_fileget = m_url_base + m_url_fileget;
+	m_url_filesave = m_url_base + m_url_filesave;
+	m_url_filelist = m_url_base + m_url_filelist;	
+}
 
 /* 登录处理流程 */
 function editor_proc_login() {
